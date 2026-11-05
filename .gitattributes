@@ -1,0 +1,2 @@
+# Applied migration checksums must be identical on Windows, Linux and in Docker.
+db/migrations/*.sql text eol=lf
