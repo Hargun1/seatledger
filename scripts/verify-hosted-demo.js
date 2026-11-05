@@ -1,0 +1,83 @@
+import assert from 'node:assert/strict';
+import { randomBytes, randomUUID } from 'node:crypto';
+import { mkdir, writeFile } from 'node:fs/promises';
+import { resolve } from 'node:path';
+import { chromium, expect } from '@playwright/test';
+
+// An explicit opt-in: this check creates its own fictional customer and one
+// simulated booking, then cancels that booking through the public UI.
+if (process.env.ALLOW_HOSTED_DEMO_CHECK !== 'true') throw new Error('Set ALLOW_HOSTED_DEMO_CHECK=true to create synthetic demo records.');
+const origin = process.env.SEATLEDGER_DEMO_ORIGIN;
+if (!origin || new URL(origin).origin !== origin || !origin.startsWith('https://')) throw new Error('Provide an exact HTTPS SEATLEDGER_DEMO_ORIGIN.');
+const directory = resolve(process.env.SEATLEDGER_DEMO_OUTPUT || 'test-results/hosted-demo');
+await mkdir(directory, { recursive: true });
+const report = { origin, startedAt: new Date().toISOString(), synthetic: true, checks: [] };
+const browser = await chromium.launch({ channel: process.env.SEATLEDGER_BROWSER_CHANNEL || 'chrome' });
+const context = await browser.newContext({ viewport: { width: 1280, height: 1000 }, serviceWorkers: 'block' });
+const page = await context.newPage(), pageErrors = [];
+page.on('pageerror', () => pageErrors.push('browser-script-error'));
+page.setDefaultTimeout(30000);
+try {
+  await page.goto(origin + '/sign-up');
+  await page.getByLabel('Your name', { exact: true }).fill('SeatLedger release verification');
+  await page.getByLabel('Email address', { exact: true }).fill('release-' + randomUUID() + '@example.invalid');
+  await page.getByLabel('Password', { exact: true }).fill(randomBytes(32).toString('base64url'));
+  const registration = page.waitForResponse(r => new URL(r.url()).pathname === '/api/auth/register' && r.request().method() === 'POST');
+  await page.getByRole('button', { name: /^Create account/ }).click();
+  const registered = await registration; assert.equal(registered.status(), 201);
+  report.userId = (await registered.json()).user.id;
+  await page.waitForURL(origin + '/account');
+  const cookie = (await context.cookies()).find(c => c.name === '__Host-seatledger_session');
+  assert.ok(cookie?.secure && cookie.httpOnly && cookie.sameSite === 'Lax' && cookie.path === '/');
+  report.checks.push('real registration through same-origin proxy; secure HttpOnly session');
+  await page.goto(origin + '/events');
+  await page.getByLabel('Search the bill').fill('Live at the Lantern');
+  await page.getByRole('button', { name: /Find events/ }).click();
+  await page.getByRole('link', { name: /Live at the Lantern/ }).click();
+  await page.getByRole('link', { name: /^View seating/ }).click();
+  await page.getByRole('link', { name: 'Choose seats & hold', exact: true }).click();
+  const seat = page.getByRole('button', { name: /^Stalls, row A, seat 1:/ });
+  await expect(seat).toBeEnabled(); await seat.click();
+  const reservation = page.waitForResponse(r => new URL(r.url()).pathname === '/api/reservations' && r.request().method() === 'POST');
+  await page.getByRole('button', { name: 'Hold selected seats', exact: true }).click();
+  const held = await reservation; assert.equal(held.status(), 201); report.reservationId = (await held.json()).id;
+  await page.getByRole('link', { name: 'Review & start simulated payment', exact: true }).click();
+  await page.getByRole('button', { name: 'Start simulated payment', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Your payment is processing.', exact: true })).toBeVisible();
+  await page.reload();
+  await page.getByRole('link', { name: 'View saved booking receipt', exact: true }).waitFor({ timeout: 90000 });
+  await page.getByRole('link', { name: 'View saved booking receipt', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Your booking.', exact: true })).toBeVisible();
+  report.bookingId = new URL(page.url()).pathname.split('/').at(-1);
+  report.checks.push('discover → hold → simulated payment → reload → autonomous signed workers → saved booking');
+  await page.getByRole('button', { name: 'Issue or recover tickets', exact: true }).click();
+  await page.getByRole('button', { name: 'Show private QR & admission code', exact: true }).click();
+  await expect(page.getByRole('img', { name: 'Private admission QR code', exact: true })).toHaveCount(1);
+  await page.getByRole('link', { name: 'Open private printable tickets', exact: true }).click();
+  await expect(page.locator('.print-ticket')).toHaveCount(1);
+  await page.emulateMedia({ media: 'print' });
+  await expect(page.locator('.print-controls')).toBeHidden();
+  await page.pdf({ path: resolve(directory, 'private-demo-ticket.pdf'), format: 'A4', printBackground: true });
+  await page.screenshot({ path: resolve(directory, 'private-demo-ticket.png'), fullPage: true });
+  report.checks.push('owned ticket issued; private QR rendered; print CSS hides controls; A4 PDF generated');
+  await page.emulateMedia({ media: 'screen' });
+  await page.getByRole('link', { name: 'Back to saved booking', exact: true }).click();
+  await page.getByRole('button', { name: 'Cancel this whole booking', exact: true }).click();
+  await page.getByRole('button', { name: 'Yes, cancel booking', exact: true }).click();
+  await expect(page.getByText('This booking is cancelled. This page does not confirm refund completion.', { exact: true })).toBeVisible();
+  report.checks.push('own synthetic booking cancelled through UI; refund remains a separate asynchronous outcome');
+  await page.goto(origin + '/account');
+  await page.getByRole('button', { name: /^Sign out$/ }).click();
+  await expect(page.getByRole('heading', { name: /Welcome/ })).toBeVisible();
+  assert.deepEqual(pageErrors, []); report.checks.push('logout; no browser script errors');
+  report.status = 'passed';
+} catch (error) {
+  report.status = 'failed'; report.failedStep = report.checks.length + 1;
+  console.error('Hosted browser check failed at step ' + report.failedStep + ': ' + error.name);
+  process.exitCode = 1;
+} finally {
+  report.finishedAt = new Date().toISOString();
+  await writeFile(resolve(directory, 'acceptance.json'), JSON.stringify(report, null, 2));
+  console.log(JSON.stringify(report));
+  await context.close(); await browser.close();
+}

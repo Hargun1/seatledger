@@ -42,6 +42,7 @@
     "evidence:load": "node --env-file-if-exists=.env scripts/measure-load.js",
     "evidence:failures": "node --env-file-if-exists=.env scripts/measure-failures.js",
     "verify:foundation": "node scripts/verify-foundation.js",
+    "verify:hosted": "node scripts/verify-hosted-demo.js",
     "db:migrate": "node --env-file-if-exists=.env scripts/migrate.js",
     "db:seed": "node --env-file-if-exists=.env scripts/seed.js"
   },

@@ -2,6 +2,8 @@
 
 A JavaScript ticket-booking demo with PostgreSQL seat ownership, expiring holds, idempotent simulated payments, durable workers, printable QR tickets, and organizer admission controls.
 
+[Live demo](https://seatledger-hargun1.vercel.app) · [GitHub](https://github.com/Hargun1/seatledger)
+
 [Project notes, architecture, interview study guides and verification evidence](https://app.notion.com/p/40973094586e81519afcd08de2b94405) live in Notion.
 
 ## Run locally

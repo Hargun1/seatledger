@@ -142,11 +142,14 @@ test('complete customer booking and recovery in the built browser', { timeout: 1
       await scenario('lost committed payment acknowledgement reloads GET-only then retries the original key once', async () => {
         const f = await c.catalogue(), who = await customer(), keys = []; await reserve(who, f); await checkout(who);
         const pattern = '**/api/reservations/*/payment-attempts'; let lose = true;
+        let retryFulfilled;
+        const retryResponse = new Promise(resolve => { retryFulfilled = resolve; });
         await who.page.route(pattern, async route => {
           if (route.request().method() !== 'POST') return route.continue();
           keys.push(route.request().headers()['idempotency-key']);
           const response = await route.fetch(); assert.equal(response.status(), 201);
-          if (lose) { lose = false; await route.abort('failed'); } else await route.fulfill({ response });
+          if (lose) { lose = false; await route.abort('failed'); }
+          else { await route.fulfill({ response }); retryFulfilled(); }
         });
         await who.page.getByRole('button', { name: 'Start simulated payment', exact: true }).click();
         await expect(who.page.getByRole('button', { name: 'Retry original request', exact: true })).toBeEnabled();
@@ -155,6 +158,9 @@ test('complete customer booking and recovery in the built browser', { timeout: 1
         await who.page.getByRole('button', { name: 'Retry original request', exact: true }).click();
         await expect(who.page.getByRole('heading', { name: 'Your payment is processing.', exact: true })).toBeVisible();
         assert.equal(keys.length, 2); assert.equal(keys[0], keys[1]); assert.equal((await paymentRows(f)).length, 1);
+        // The recovered GET can already display PROCESSING while the retry's
+        // intercepted response is still in flight. Finish it before unroute.
+        await retryResponse;
         await who.page.unroute(pattern); await settle(); await who.page.reload();
         await expect(who.page.getByRole('heading', { name: 'Your seats are booked.', exact: true })).toBeVisible();
         const other = await customer(), booking = (await paymentRows(f))[0].booking_id;
