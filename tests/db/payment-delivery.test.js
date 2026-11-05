@@ -199,14 +199,14 @@ test('durable local simulator delivery, recovery and booking pipeline (real Post
   await t.test('force-terminated dispatcher after callback commit recovers via a fresh CLI without duplicate booking',()=>withDatabase(async c=>{
     const x=await c.make(),cwd=fileURLToPath(new URL('../../',import.meta.url));
     const env={...process.env,NODE_ENV:'test',DATABASE_URL:c.url.toString(),PAYMENT_MODE:'simulated',AUTH_SECRET:'ab'.repeat(32),SIMULATOR_WEBHOOK_SECRET:secret,SIMULATOR_CALLBACK_URL:c.callbackUrl,DELIVERY_BATCH_SIZE:'10',DELIVERY_LEASE_SECONDS:'30'};
-    const child=spawn(process.execPath,['--env-file-if-exists=.env','tests/helpers/delivery-crash-child.js'],{cwd,env,windowsHide:true,stdio:['ignore','pipe','pipe']});
+    const child=spawn(process.execPath,['tests/helpers/delivery-crash-child.js'],{cwd,env,windowsHide:true,stdio:['ignore','pipe','pipe']});
     const exited=new Promise(resolve=>{child.once('exit',(code,signal)=>resolve({code,signal}));child.once('error',()=>resolve({code:-1,signal:null}));});let timer;
     try {
       await new Promise((resolve,reject)=>{let output='';timer=setTimeout(()=>reject(new Error('Delivery crash marker was not reached')),10000);child.stdout.on('data',chunk=>{output+=chunk;if(output.includes('"receipt-committed"'))resolve();});child.once('error',()=>reject(new Error('Could not start owned delivery fixture')));child.once('exit',()=>reject(new Error('Delivery fixture exited before termination')));});clearTimeout(timer);
       assert.equal(await c.receiptCount(x),1);assert.equal((await c.jobs(x))[0].status,'PROCESSING');assert.equal(child.kill('SIGKILL'),true);const exit=await exited;assert.ok(exit.signal||exit.code!==0);
     } finally {clearTimeout(timer);if(child.exitCode===null&&child.signalCode===null)child.kill('SIGKILL');await exited;}
     await c.expire((await c.jobs(x))[0]);
-    const run=async()=>{const result=await promisify(execFile)(process.execPath,['--env-file-if-exists=.env','apps/api/src/payments/delivery-worker.js','--once'],{cwd,env,windowsHide:true,timeout:10000});assert.equal(result.stderr,'');const lines=result.stdout.trim().split('\n').map(s=>JSON.parse(s));assert.equal(lines.at(-1).event,'stopped');return lines.find(r=>r.event==='batch');};
+    const run=async()=>{const result=await promisify(execFile)(process.execPath,['apps/api/src/payments/delivery-worker.js','--once'],{cwd,env,windowsHide:true,timeout:10000});assert.equal(result.stderr,'');const lines=result.stdout.trim().split('\n').map(s=>JSON.parse(s));assert.equal(lines.at(-1).event,'stopped');return lines.find(r=>r.event==='batch');};
     const recovered=await run();assert.equal(recovered.delivered,2);assert.equal(recovered.failed,0);assert.equal(await c.receiptCount(x),2);assert.equal((await c.jobs(x))[0].attempt_count,2);
     await runInboxBatch(c.pools[1]);assert.equal((await c.pay(x)).resolution,'BOOKED');assert.equal((await run()).claimed,0);
   }));

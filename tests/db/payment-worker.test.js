@@ -109,7 +109,7 @@ test('simulated provider/outbox recovery with real PostgreSQL and process termin
     await t.test('force-terminated worker after provider commit is recovered by a fresh CLI process without another effect', async () => {
       const f = await enqueue(), cwd = fileURLToPath(new URL('../../', import.meta.url));
       const env = { ...process.env, DATABASE_URL: url.toString(), PAYMENT_MODE: 'simulated', PAYMENT_WORKER_BATCH_SIZE: '1', PAYMENT_WORKER_LEASE_SECONDS: '5', PAYMENT_WORKER_POLL_MS: '1000', SIMULATOR_SCENARIO: 'failure' };
-      const child = spawn(process.execPath, ['--env-file-if-exists=.env', 'tests/helpers/payment-worker-crash-child.js'], { cwd, env, windowsHide: true, stdio: ['ignore', 'pipe', 'pipe'] });
+      const child = spawn(process.execPath, [ 'tests/helpers/payment-worker-crash-child.js'], { cwd, env, windowsHide: true, stdio: ['ignore', 'pipe', 'pipe'] });
       const exited = new Promise(resolve => {
         child.once('exit', (code, signal) => resolve({ code, signal }));
         child.once('error', () => resolve({ code: -1, signal: null }));
@@ -126,7 +126,7 @@ test('simulated provider/outbox recovery with real PostgreSQL and process termin
       } finally { clearTimeout(timer); if (child.exitCode === null && child.signalCode === null) child.kill('SIGKILL'); await exited; }
       await expireLease(f.job.id);
       const run = async () => {
-        const result = await promisify(execFile)(process.execPath, ['--env-file-if-exists=.env', 'apps/api/src/payments/outbox-worker.js', '--once'], { cwd, env, windowsHide: true, timeout: 10000 });
+        const result = await promisify(execFile)(process.execPath, [ 'apps/api/src/payments/outbox-worker.js', '--once'], { cwd, env, windowsHide: true, timeout: 10000 });
         assert.equal(result.stderr, ''); const records = result.stdout.trim().split('\n').map(line => JSON.parse(line));
         assert.equal(records.at(-1).event, 'stopped'); return records.find(r => r.event === 'batch');
       };

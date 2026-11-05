@@ -165,7 +165,7 @@ test('payment inbox processing confirms or compensates atomically (real PostgreS
         await blocker.query('COMMIT');const result=await running;if(result.error)throw result.error;assert.equal(result.value.outcome,'booked');
       } finally {await admin.query('ROLLBACK');await blocker.query('ROLLBACK');blocker.release();if(running)await running;}
       const y=await fixture();await receive(y);const cwd=fileURLToPath(new URL('../../',import.meta.url));
-      const run=async()=>{const result=await promisify(execFile)(process.execPath,['--env-file-if-exists=.env','apps/api/src/payments/inbox-worker.js','--once'],{cwd,env:{...process.env,DATABASE_URL:url.toString(),PAYMENT_MODE:'simulated',INBOX_BATCH_SIZE:'50'},windowsHide:true,timeout:10000});
+      const run=async()=>{const result=await promisify(execFile)(process.execPath,['apps/api/src/payments/inbox-worker.js','--once'],{cwd,env:{...process.env,DATABASE_URL:url.toString(),PAYMENT_MODE:'simulated',INBOX_BATCH_SIZE:'50'},windowsHide:true,timeout:10000});
         assert.equal(result.stderr,'');const records=result.stdout.trim().split('\n').map(s=>JSON.parse(s));assert.equal(records.at(-1).event,'stopped');return records.find(r=>r.event==='batch');};
       assert.equal((await run()).booked,1);assert.equal((await payment(y)).resolution,'BOOKED');
       await pools[0].query(`INSERT INTO payment_events(provider_event_id,payment_attempt_id,provider_payment_id,kind,amount_minor,currency,payload_hash,verified_at)

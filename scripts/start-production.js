@@ -29,7 +29,8 @@ function start(file) {
   children.add(child);
   console.log(JSON.stringify({ service: 'seatledger-runtime', event: 'child-started', file, pid: child.pid }));
   child.once('error', () => shutdown(1));
-  child.once('exit', () => {
+  child.once('exit', (code, signal) => {
+    console.log(JSON.stringify({ service: 'seatledger-runtime', event: 'child-exited', file, code, signal }));
     children.delete(child);
     if (!closing) shutdown(1); // Never keep a partly working API/worker group.
     if (closing && !children.size) process.exit(exitCode);

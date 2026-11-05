@@ -200,7 +200,7 @@ test('reservation/payment commands, retries and contention (real PostgreSQL, two
     await t.test('worker CLI one-shot and restart use durable state in a separate process', async () => {
       const ids = await spareSeats(), old = await timedHold(people[0], ids, -60000);
       const run = async () => {
-        const result = await promisify(execFile)(process.execPath, ['--env-file-if-exists=.env', 'apps/api/src/reservations/expiry-worker.js', '--once'], {
+        const result = await promisify(execFile)(process.execPath, [ 'apps/api/src/reservations/expiry-worker.js', '--once'], {
           cwd: fileURLToPath(new URL('../../', import.meta.url)), windowsHide: true, timeout: 10000,
           env: { ...process.env, DATABASE_URL: url.toString(), EXPIRY_BATCH_SIZE: '1', EXPIRY_POLL_MS: '1000' }
         });
