@@ -1,0 +1,77 @@
+name: SeatLedger local acceptance
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      measurements:
+        description: Run optional synthetic query, load and recovery measurements
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  acceptance:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: seatledger_ci
+          POSTGRES_PASSWORD: ephemeral_ci_only
+          POSTGRES_DB: seatledger_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U seatledger_ci -d seatledger_ci"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      NODE_ENV: test
+      DATABASE_URL: postgresql://seatledger_ci:ephemeral_ci_only@127.0.0.1:5432/seatledger_ci
+      PUBLIC_ORIGIN: http://127.0.0.1:5173
+      AUTH_SECRET: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+      SIMULATOR_WEBHOOK_SECRET: bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - name: Install isolated runner browser
+        run: npx --no-install playwright install --with-deps chromium
+      - run: npm run db:migrate
+      - name: Seed disposable CI database
+        run: npm run db:seed
+        env:
+          NODE_ENV: development
+          ALLOW_DEV_SEED: 'true'
+      - name: Units and real PostgreSQL acceptance
+        run: |
+          npm test
+          npm run test:db
+      - name: Build and all browser journeys
+        run: |
+          npm run build
+          node --test --test-concurrency=1 tests/browser/*.test.js
+      - name: Optional measured evidence
+        if: github.event_name == 'workflow_dispatch' && inputs.measurements
+        run: |
+          npm run evidence:queries
+          npm run evidence:load
+          npm run evidence:failures
+      - name: Upload sanitized synthetic measurements
+        if: always() && github.event_name == 'workflow_dispatch' && inputs.measurements
+        uses: actions/upload-artifact@v4
+        with:
+          name: seatledger-evidence
+          path: test-results/evidence/*.json
+          if-no-files-found: ignore
+          retention-days: 7
+

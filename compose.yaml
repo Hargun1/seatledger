@@ -1,0 +1,65 @@
+name: seatledger
+services:
+  migrate:
+    profiles: [app]
+    build:
+      context: .
+      target: api
+    environment:
+      DATABASE_URL: postgresql://seatledger:seatledger_local_only@db:5432/seatledger
+      NODE_ENV: development
+      PAYMENT_MODE: simulated
+    command: [node, scripts/migrate.js]
+    depends_on:
+      db:
+        condition: service_healthy
+  api:
+    profiles: [app]
+    build:
+      context: .
+      target: api
+    environment:
+      DATABASE_URL: postgresql://seatledger:seatledger_local_only@db:5432/seatledger
+      NODE_ENV: development
+      HOST: 0.0.0.0
+      AUTH_SECRET: ${AUTH_SECRET:-}
+      PUBLIC_ORIGIN: http://127.0.0.1:5174
+      CUSTOMER_CANCELLATION_CUTOFF_MINUTES: ${CUSTOMER_CANCELLATION_CUTOFF_MINUTES:-60}
+      PAYMENT_MODE: simulated
+    ports:
+      - "127.0.0.1:4101:4100"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      test: [CMD, node, -e, "fetch('http://127.0.0.1:4100/api/ready').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+  web:
+    profiles: [app]
+    build:
+      context: .
+      target: web
+    ports:
+      - "127.0.0.1:5174:80"
+    depends_on:
+      api:
+        condition: service_healthy
+  db:
+    image: postgres:17
+    environment:
+      POSTGRES_USER: seatledger
+      POSTGRES_PASSWORD: seatledger_local_only
+      POSTGRES_DB: seatledger
+    ports:
+      - "127.0.0.1:55432:5432"
+    volumes:
+      - seatledger_pg:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U seatledger -d seatledger"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+volumes:
+  seatledger_pg:

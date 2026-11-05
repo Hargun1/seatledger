@@ -1,0 +1,28 @@
+services:
+  - type: web
+    name: seatledger-api-hargun1
+    runtime: node
+    region: singapore
+    plan: free
+    buildCommand: npm ci --include=dev
+    startCommand: npm run db:migrate && npm run start:production
+    healthCheckPath: /api/ready
+    envVars:
+      - key: NODE_VERSION
+        value: 24.15.0
+      - key: NODE_ENV
+        value: production
+      - key: HOST
+        value: 0.0.0.0
+      - key: PAYMENT_MODE
+        value: simulated
+      - key: PUBLIC_ORIGIN
+        value: https://seatledger-hargun1.vercel.app
+      - key: DATABASE_URL
+        sync: false
+      - key: MIGRATION_DATABASE_URL
+        sync: false
+      - key: AUTH_SECRET
+        generateValue: true
+      - key: SIMULATOR_WEBHOOK_SECRET
+        generateValue: true

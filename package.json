@@ -1,0 +1,52 @@
+{
+  "name": "seatledger",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "engines": {
+    "node": ">=24 <25"
+  },
+  "scripts": {
+    "dev": "concurrently -k -n api,web \"npm run dev -w @seatledger/api\" \"npm run dev -w @seatledger/web\"",
+    "build": "npm run build -w @seatledger/web",
+    "start": "npm run start -w @seatledger/api",
+    "start:production": "node scripts/start-production.js",
+    "db:seed:hosted": "node scripts/seed-hosted-demo.js",
+    "worker:expiry": "node --env-file-if-exists=.env apps/api/src/reservations/expiry-worker.js",
+    "worker:payments": "node --env-file-if-exists=.env apps/api/src/payments/outbox-worker.js",
+    "worker:inbox": "node --env-file-if-exists=.env apps/api/src/payments/inbox-worker.js",
+    "worker:delivery": "node --env-file-if-exists=.env apps/api/src/payments/delivery-worker.js",
+    "worker:refunds": "node --env-file-if-exists=.env apps/api/src/payments/refund-worker.js",
+    "worker:event-cancellations": "node --env-file-if-exists=.env apps/api/src/organizers/event-cancellation-worker.js",
+    "workers:payments": "concurrently -k -n create,delivery,inbox,refund \"npm run worker:payments\" \"npm run worker:delivery\" \"npm run worker:inbox\" \"npm run worker:refunds\"",
+    "auth:secret": "node scripts/ensure-local-auth-secret.js",
+    "payments:secret": "node scripts/ensure-local-simulator-secret.js",
+    "doctor": "node --env-file-if-exists=.env scripts/doctor.js",
+    "dev:admin": "node --env-file-if-exists=.env scripts/grant-dev-admin.js",
+    "test": "node --test tests/*.test.js",
+    "test:db": "node --env-file-if-exists=.env --test --test-concurrency=1 tests/db/*.test.js",
+    "test:db:parallel": "node --env-file-if-exists=.env --test tests/db/*.test.js",
+    "test:browser:auth": "npm run build && node --env-file-if-exists=.env --test --test-concurrency=1 tests/browser/auth.test.js",
+    "test:browser:organizers": "npm run build && node --env-file-if-exists=.env --test --test-concurrency=1 tests/browser/organizers.test.js",
+    "test:browser:admin": "npm run build && node --env-file-if-exists=.env --test --test-concurrency=1 tests/browser/admin-review.test.js",
+    "test:browser:venues": "npm run build && node --env-file-if-exists=.env --test --test-concurrency=1 tests/browser/venues.test.js",
+    "test:browser:shows": "npm run build && node --env-file-if-exists=.env --test --test-concurrency=1 tests/browser/shows.test.js",
+    "test:browser:publication": "npm run build && node --env-file-if-exists=.env --test --test-concurrency=1 tests/browser/publication.test.js",
+    "test:browser:tickets": "npm run build && node --env-file-if-exists=.env --test --test-concurrency=1 tests/browser/ticket-admission.test.js",
+    "test:browser:booking": "npm run build && node --env-file-if-exists=.env --test --test-concurrency=1 tests/browser/booking-journey.test.js",
+    "evidence:queries": "node --env-file-if-exists=.env scripts/measure-queries.js",
+    "evidence:load": "node --env-file-if-exists=.env scripts/measure-load.js",
+    "evidence:failures": "node --env-file-if-exists=.env scripts/measure-failures.js",
+    "verify:foundation": "node scripts/verify-foundation.js",
+    "db:migrate": "node --env-file-if-exists=.env scripts/migrate.js",
+    "db:seed": "node --env-file-if-exists=.env scripts/seed.js"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.64.1",
+    "concurrently": "^9.2.1"
+  }
+}

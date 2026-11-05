@@ -1,0 +1,19 @@
+# Temporary verifier database; no application volume is mounted.
+services:
+  db:
+    image: postgres:17
+    environment:
+      POSTGRES_USER: seatledger_verify
+      POSTGRES_PASSWORD: verification_only
+      POSTGRES_DB: seatledger_verify
+    ports:
+      # The verifier supplies one chosen free port for its complete lifetime.
+      # An empty/random mapping can be reassigned after stop/start on Docker.
+      - "127.0.0.1:${SEATLEDGER_VERIFY_PORT:-0}:5432"
+    tmpfs:
+      - /var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U seatledger_verify -d seatledger_verify"]
+      interval: 1s
+      timeout: 2s
+      retries: 30

@@ -1,0 +1,2 @@
+.payment-history-actions{display:flex;flex-direction:column;gap:18px;min-width:160px}.payment-reference{color:var(--muted);overflow-wrap:anywhere}.payment-reference code{display:block;font-size:10px}.payment-history-page .receipt-history>li>div:first-child{min-width:0}.payment-history-page>p.receipt-context{margin-top:32px}
+@media(max-width:650px){.payment-history-actions{gap:14px;min-width:0}}
