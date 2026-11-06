@@ -2,11 +2,10 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { withAuthorizedSession } from '../auth/authorized-transaction.js';
 import { browserMutation, sessionCookie, verifyCsrf } from '../auth/security.js';
-import { claimIdempotency, completeIdempotency } from '../reliability/idempotency.js';
-import { HttpError } from '../http-error.js';
-import { createReservation, readReservation, releaseReservation } from './service.js';
+import { readReservation } from './service.js';
+import { executeReservationCommand } from './command-service.js';
 import { readCurrentReservations } from './recovery.js';
-import { reservationCommand, reservationId, reservationRecoveryQuery, parseReservationValue as parse } from './commands.js';
+import { reservationId, reservationRecoveryQuery, parseReservationValue as parse } from './commands.js';
 export function createReservationRouter({ pool, config }) {
   const router = Router(), boundary = browserMutation(config);
   router.use('/reservations', (req, res, next) => { res.set('Cache-Control', 'no-store'); next(); });
@@ -15,21 +14,7 @@ export function createReservationRouter({ pool, config }) {
       const query = parse(querySchema, req.query);
       if (!operation) return { status: 200, body: await work(db, session.user.id, req, query) };
       verifyCsrf(req, session);
-      const { input, body } = reservationCommand(operation, session.user.id, req.get('Idempotency-Key'), req.body, req.params.id);
-      const claim = await claimIdempotency(db, input);
-      if (claim.kind === 'conflict') throw new HttpError(409, 'IDEMPOTENCY_CONFLICT');
-      if (claim.kind === 'replay') return { status: claim.status, body: claim.body };
-      if (closeOnly) {
-        // Same user/operation/key/hash as the original command. This receipt
-        // fences a late sender WITHOUT taking inventory or releasing a hold.
-        const body = { error: 'REQUEST_CLOSED', operation: input.operation, requestKey: input.key, paymentMode: 'simulated' };
-        await completeIdempotency(db, input, 409, body);
-        return { status: 409, body };
-      }
-      const saved = operation === 'reservation.create' ? await createReservation(db, session.user.id, body) : await releaseReservation(db, session.user.id, body.id);
-      const status = operation === 'reservation.create' ? 201 : 200;
-      await completeIdempotency(db, input, status, saved);
-      return { status, body: saved };
+      return executeReservationCommand(db, session.user.id, operation, req.get('Idempotency-Key'), req.body, { id: req.params.id, closeOnly });
     });
     res.status(result.status).json(result.body); // Includes deferred constraints/COMMIT.
   };

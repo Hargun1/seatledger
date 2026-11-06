@@ -15,8 +15,9 @@ import { HttpError } from './http-error.js';
 import { createTelemetry, validMetricsToken } from './observability.js';
 import { withAuthorizedSession } from './auth/authorized-transaction.js';
 import { sessionCookie } from './auth/security.js';
+import { createAssistantRouter } from './assistant/routes.js';
 
-export function createApp({ pool, logger, config, authLimits,
+export function createApp({ pool, logger, config, authLimits, assistantModel,
   telemetry = createTelemetry({ logger, sampleRate: config?.TRACE_SAMPLE_RATE ?? Number(process.env.TRACE_SAMPLE_RATE ?? .05) }) }) {
   const app = express();
   app.disable('x-powered-by');
@@ -49,6 +50,7 @@ export function createApp({ pool, logger, config, authLimits,
   // The actual server always supplies validated configuration. Health-only
   // test/verifier factories can omit it without provisioning auth credentials.
   if(config) app.use('/api/auth',createAuthRouter({pool,config,limits:authLimits}));
+  if(config) app.use('/api',createAssistantRouter({pool,config,model:assistantModel}));
   if(config) app.use('/api',createOrganizerRouter({pool,config}));
   if(config) app.use('/api',createReservationRouter({pool,config}));
   if(config) app.use('/api',createPaymentRouter({pool,config}));

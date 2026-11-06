@@ -1,0 +1,48 @@
+{
+  "feature": "SeatLedger AI Booking Assistant - Gemini default",
+  "date": "2026-11-06",
+  "provider": "gemini",
+  "model": "gemini-3.1-flash-lite",
+  "realGeminiRequestsMade": 0,
+  "realOpenAIRequestsMade": 0,
+  "productionActivated": false,
+  "latestChecks": {
+    "unitTests": { "passed": 155, "failed": 0 },
+    "databaseApiTests": { "passed": 241, "failed": 0 },
+    "browserEntries": { "passed": 84, "failed": 0 },
+    "totalEntries": 480,
+    "productionBuild": "passed",
+    "load": "passed",
+    "databaseOutageRecovery": "passed"
+  },
+  "operationsReport": "test-results/operations/2026-11-06T15-32-38.604Z/acceptance.json",
+  "originalOperationsReportPassed": false,
+  "databaseRerunLog": "test-results/gemini-database-recheck.log",
+  "verificationNote": "The first database profile had one Windows native process exit (3221226505) in the existing organizer-operations test, with no assertion failure. The full database suite was rerun on a fresh disposable database: 241 passed, zero failed. Unit, build, browser, load and outage checks passed in the original profile. The original failed report is retained unchanged; this matrix combines those results with the clean full database rerun.",
+  "geminiCoverage": [
+    "native generateContent request and JSON-schema function declarations",
+    "fixed hostname and header-only API key",
+    "opaque thought signatures and native function response IDs",
+    "quota retry hint and sanitized provider errors",
+    "malformed, blocked, truncated, oversized and multi-call responses",
+    "no automatic OpenAI fallback",
+    "native HTTP fixtures through authenticated search, seat selection, summary and original reservation command"
+  ],
+  "load": {
+    "apiInstances": 2,
+    "maximumConcurrentRequests": 250,
+    "requestsPerCase": 1000,
+    "oneSeat": { "holds": 1, "conflicts": 999 },
+    "oneShow": { "holds": 500, "conflicts": 500 },
+    "manyShows": { "holds": 1000, "conflicts": 0 },
+    "unexpectedResponses": 0,
+    "allAllocationInvariantsPassed": true,
+    "scope": "synthetic reservation workload, not Gemini throughput or production capacity"
+  },
+  "limitations": [
+    "A private free-tier Gemini key is still required to enable real conversations.",
+    "Real provider semantics, model access, latency, quota and billing have not been smoke-tested.",
+    "Google free-tier allowances and data handling follow the project/model terms documented in AI_ASSISTANT.md.",
+    "The feature remains local, uncommitted and undeployed."
+  ]
+}

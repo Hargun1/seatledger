@@ -64,6 +64,7 @@ export function Discovery() {
   return <main id="main" className="discovery-page" aria-busy={resource.status === 'loading'}>
     <header className="programme-intro"><div><p className="eyebrow">SEATLEDGER / THE LOCAL PROGRAMME</p><h1 tabIndex="-1">The local<br /><em>programme.</em></h1></div>
       <div className="programme-colophon"><p className="eyebrow">SMALL STAGES. GOOD COMPANY.</p><p>Live music, new ideas and a reason to put your phone away.</p><p className="programme-caption">Browse the programme, hold your seats for five minutes and continue to simulated checkout. No real money is charged.</p></div></header>
+    <p><Link className="quiet-link" to="/assistant">Find your evening with the AI booking assistant ↗</Link></p>
     <SearchForm key={search} initial={parsed.filters} clear={pathname} onApply={next => { focusResults.current = true; if (next === search) resource.refresh(); else setParams(next); }} />
     <section className="programme-list" aria-labelledby="programme-heading"><div className="programme-section-heading"><h2 id="programme-heading" tabIndex="-1" ref={results}>On the bill.</h2>
       {resource.status === 'ready' && <p role="status">{resource.data.items.length} {resource.data.items.length === 1 ? 'event' : 'events'} on this page</p>}</div>

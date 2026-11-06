@@ -20,6 +20,8 @@ Requires Node.js 24, npm, Docker and Docker Compose.
 
 Payments are simulated. Public registration creates a customer; organizer approval requires administrative access. Demo data is fictional.
 
+The optional [AI booking assistant](AI_ASSISTANT.md) adds conversational event search, adjacent-seat suggestions and explicitly confirmed holds at `/assistant`. It uses the existing reservation engine and checkout. Gemini Flash-Lite is the default provider, with a free-tier API key from Google AI Studio; OpenAI is an explicit alternative with no automatic fallback. The assistant stays disabled until its server-side key is configured and the feature is enabled. Automated assistant tests use mocked providers.
+
 ## Check
 
 `npm test`, `npm run test:db`, `npm run build`, and the `test:browser:*` scripts run the acceptance checks. `npm run verify:foundation` uses a disposable Docker database. Set `SEATLEDGER_BROWSER_CHANNEL=chrome` to use installed Chrome locally; CI installs Chromium.

@@ -1,0 +1,39 @@
+{
+  "feature": "SeatLedger assistant readability and usability",
+  "date": "2026-11-07",
+  "scope": "local built React UI, mocked model, real API and disposable PostgreSQL",
+  "deployed": false,
+  "changes": [
+    "compact heading and accessible four-step progress indicator",
+    "bounded chat history with a separate composer",
+    "larger text, distinct event and seat cards, clearly labelled total prices",
+    "separate current booking details, explicit confirmation and hold countdown",
+    "editable starter prompts and refinement shortcuts without automatic submission",
+    "Enter to send, Shift+Enter for newline, composition-safe keyboard handling",
+    "collapsed historical cards without stale action buttons",
+    "expired summaries offer fresh-seat drafts and hide confirmation"
+  ],
+  "checks": {
+    "productionBuild": "passed",
+    "completeUnitSuite": { "passed": 155, "failed": 0 },
+    "completeBrowserSuite": { "passed": 86, "failed": 0 },
+    "targetedAssistantDatabaseApiSuite": { "passed": 10, "failed": 0 },
+    "credentialPatternScan": "passed",
+    "diffWhitespaceCheck": "passed"
+  },
+  "viewportWidthsWithoutHorizontalOverflow": [320, 390, 768, 820, 1024, 1280],
+  "evidence": {
+    "build": "test-results/ui-build.log",
+    "units": "test-results/ui-unit-tests.log",
+    "browsers": "test-results/ui-browser-tests.log",
+    "assistantApi": "test-results/ui-assistant-api.log",
+    "desktopStart": "test-results/assistant/desktop-start.png",
+    "desktopSummary": "test-results/assistant/desktop.png",
+    "mobileHold": "test-results/assistant/mobile.png"
+  },
+  "limitations": [
+    "No real Gemini call or hosted deployment verification was performed for this UI change.",
+    "The complete database suite was not rerun for this UI-only change; all 10 assistant API cases were rerun.",
+    "Browser layouts are emulated; physical phone and assistive-technology acceptance remains separate."
+  ]
+}

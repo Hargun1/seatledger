@@ -12,6 +12,7 @@ import { Booking } from './reservations/Booking.jsx';
 import { bookingReturnPath } from './reservations/model.js';
 
 const Checkout = lazy(() => import('./payments/Checkout.jsx').then(module => ({ default: module.Checkout })));
+const Assistant = lazy(() => import('./assistant/Assistant.jsx').then(module => ({ default: module.Assistant })));
 const PaymentHistory = lazy(() => import('./payments/History.jsx').then(module => ({ default: module.PaymentHistory })));
 const Receipts = lazy(() => import('./bookings/Receipts.jsx').then(module => ({ default: module.Receipts })));
 const Checkin = lazy(() => import('./checkins/Checkin.jsx').then(module => ({ default: module.Checkin })));
@@ -69,6 +70,7 @@ export function App() {
     <Routes>
       <Route path="/" element={<Discovery />} />
       <Route path="/events" element={<Discovery />} />
+      <Route path="/assistant" element={<SessionBoundary><CheckoutBoundary key={pathname} context="booking assistant"><Suspense fallback={<main id="main" className="message-page"><h1 tabIndex="-1">Opening your assistant.</h1></main>}><Assistant /></Suspense></CheckoutBoundary></SessionBoundary>} />
       <Route path="/events/:eventId" element={<EventProgramme />} />
       <Route path="/events/:eventId/shows/:showId/seats" element={<PublicSeating />} />
       <Route path="/events/:eventId/shows/:showId/reserve" element={<SessionBoundary><Booking /></SessionBoundary>} />
@@ -206,6 +208,7 @@ function Account() {
       <div className="programme-note"><p className="eyebrow">YOUR NEXT EVENING</p><h3>Find a place in the room.</h3><p>Explore the programme and choose seats to hold. Your bookings keeps confirmed and cancelled receipts available after checkout. Your payments finds saved attempts and reopens checkout for pending outcomes or refund progress. Open a saved booking to issue or recover simulated admission tickets. Organizer staff can open the entrance register from their show workspace.</p></div>
       <Link className="workspace-account-link" to="/account/bookings">Your bookings & saved receipts</Link>
       <Link className="workspace-account-link" to="/account/payments">Your payments & refund recovery</Link>
+      <Link className="workspace-account-link" to="/assistant">AI booking assistant</Link>
       <Link className="workspace-account-link" to="/events">Explore the programme</Link>
       <Link className="workspace-account-link" to="/organizers">Organize an evening <span aria-hidden="true">↗</span></Link>
       {user.role === 'ADMIN' && <Link className="workspace-account-link" to="/admin/organizers">Review organizations <span aria-hidden="true">↗</span></Link>}

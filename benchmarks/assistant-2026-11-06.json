@@ -1,0 +1,54 @@
+{
+  "feature": "SeatLedger AI Booking Assistant",
+  "date": "2026-11-06",
+  "scope": "local implementation; injected model and real PostgreSQL/HTTP/browser services",
+  "openAIRequestsMade": 0,
+  "productionActivated": false,
+  "latestChecks": {
+    "unitTests": { "passed": 150, "failed": 0 },
+    "databaseApiTests": { "passed": 239, "failed": 0 },
+    "browserEntries": { "passed": 84, "failed": 0 },
+    "totalEntries": 473,
+    "productionBuild": "passed",
+    "assistantFocusedDatabaseRerun": { "passed": 8, "failed": 0 }
+  },
+  "operationsReport": "test-results/operations/2026-11-06T15-08-23.259Z/acceptance.json",
+  "operationsReportPassed": true,
+  "verificationNote": "Operations run passed 149 units, 239 database/API entries and 84 browser entries. A final transcript-bound unit case was then included in the complete 150-unit rerun, and all eight assistant database cases were rerun after the transcript guard.",
+  "load": {
+    "apiInstances": 2,
+    "maximumConcurrentRequests": 250,
+    "requestsPerCase": 1000,
+    "oneSeat": { "holds": 1, "conflicts": 999 },
+    "oneShow": { "holds": 500, "conflicts": 500 },
+    "manyShows": { "holds": 1000, "conflicts": 0 },
+    "unexpectedResponses": 0,
+    "invalidAllocations": 0,
+    "scope": "synthetic local reservation workload; not AI throughput or a production capacity guarantee"
+  },
+  "outage": {
+    "readinessDuringPause": 503,
+    "livenessDuringPause": 200,
+    "apiRestarted": false,
+    "pendingJobRecovered": true,
+    "competingWorkers": 2,
+    "bookings": 1,
+    "providerEffects": 1
+  },
+  "browserFlow": [
+    "conversation search and structured cards",
+    "adjacent two-seat recommendations",
+    "explicit confirmation and five-minute hold",
+    "existing simulated checkout and signed callback workers",
+    "two QR tickets",
+    "reload and lost-confirmation acknowledgement recovery without another POST",
+    "logout privacy and no external browser requests",
+    "320px layout without horizontal overflow"
+  ],
+  "limitations": [
+    "Real OpenAI language accuracy, model access, latency and billing remain unverified.",
+    "No deployment or activation was performed for this feature.",
+    "Existing simulated confirmation delivery does not add external email or SMS.",
+    "Conversation and search limits and retention maintenance are documented in AI_ASSISTANT.md."
+  ]
+}

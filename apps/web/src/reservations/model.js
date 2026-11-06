@@ -2,7 +2,7 @@ import { validId, instant } from '../discovery/model.js';
 
 export function bookingReturnPath(value) {
   if (typeof value !== 'string') return null;
-  if (value === '/account/bookings' || value === '/account/payments') return value;
+  if (value === '/account/bookings' || value === '/account/payments' || value === '/assistant') return value;
   const eventCancellation=/^\/organizers\/([^/]+)\/events\/([^/]+)\/cancellation$/.exec(value);
   if(eventCancellation)return eventCancellation.slice(1).every(validId)?value.toLowerCase():null;
   const entrance = /^\/organizers\/([^/]+)\/events\/([^/]+)\/shows\/([^/]+)\/(?:check-in|operations)$/.exec(value);

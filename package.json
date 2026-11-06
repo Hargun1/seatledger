@@ -38,6 +38,7 @@
     "test:browser:publication": "npm run build && node --env-file-if-exists=.env --test --test-concurrency=1 tests/browser/publication.test.js",
     "test:browser:tickets": "npm run build && node --env-file-if-exists=.env --test --test-concurrency=1 tests/browser/ticket-admission.test.js",
     "test:browser:booking": "npm run build && node --env-file-if-exists=.env --test --test-concurrency=1 tests/browser/booking-journey.test.js",
+    "test:browser:assistant": "npm run build && node --env-file-if-exists=.env --test --test-concurrency=1 tests/browser/assistant.test.js",
     "evidence:queries": "node --env-file-if-exists=.env scripts/measure-queries.js",
     "evidence:load": "node --env-file-if-exists=.env scripts/measure-load.js",
     "evidence:failures": "node --env-file-if-exists=.env scripts/measure-failures.js",

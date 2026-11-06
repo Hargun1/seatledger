@@ -10,14 +10,14 @@ import { createTelemetry } from '../../apps/api/src/observability.js';
 
 // Verification only: all application connections use a new private schema.
 // Never migrate, seed, reset, stop or modify the user's public application data.
-export async function evidenceFixture(work, { apiCount = 1, logger = { info() {}, error() {} }, traceSampleRate = 0 } = {}) {
+export async function evidenceFixture(work, { apiCount = 1, logger = { info() {}, error() {} }, traceSampleRate = 0, assistantModel, assistantConfig = {} } = {}) {
   assert.ok(Number.isInteger(apiCount) && apiCount >= 1 && apiCount <= 2);
   const database = readDatabaseConfig().DATABASE_URL;
   const adminPool = createPool(database), pools = [], servers = [], backendPids = new Set();
   const schema = 'auth_test_' + randomUUID().replaceAll('-', '');
   assert.match(schema, /^auth_test_[a-f0-9]{32}$/);
   const config = { NODE_ENV: 'test', AUTH_SECRET: randomBytes(32).toString('hex'),
-    SIMULATOR_WEBHOOK_SECRET: randomBytes(32).toString('hex'), PUBLIC_ORIGIN: 'http://127.0.0.1' };
+    SIMULATOR_WEBHOOK_SECRET: randomBytes(32).toString('hex'), PUBLIC_ORIGIN: 'http://127.0.0.1', ...assistantConfig };
   let admin, primaryError;
   try {
     admin = await adminPool.connect();
@@ -36,7 +36,7 @@ export async function evidenceFixture(work, { apiCount = 1, logger = { info() {}
       pool.on('remove', client => backendPids.delete(client.processID)); pools.push(pool);
     }
     for (let i = 0; i < apiCount; i++) {
-      const server = createApp({ pool: pools[i], config, logger, telemetry: createTelemetry({ logger, sampleRate: traceSampleRate }) }).listen(0, '127.0.0.1');
+      const server = createApp({ pool: pools[i], config, logger, assistantModel, telemetry: createTelemetry({ logger, sampleRate: traceSampleRate }) }).listen(0, '127.0.0.1');
       servers.push(server);
       await new Promise((resolve, reject) => { server.once('listening', resolve); server.once('error', reject); });
     }
