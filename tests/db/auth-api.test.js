@@ -129,6 +129,8 @@ test('account/session API and CSRF boundary (HTTP + real PostgreSQL)',async t=>{
       const input={email:account().email,password};
       assert.equal((await post(one,'login',input)).status,401);
       const blocked=await post(two,'login',input);assert.equal(blocked.status,429);assert.ok(Number(blocked.headers.get('retry-after'))>0);
+      assert.equal((await post(two,'login',{email:account().email,password},{headers:{'X-Forwarded-For':'203.0.113.42'}})).status,429,
+        'Untrusted forwarding headers must not bypass the shared peer-IP limit');
       await apiPool.query("UPDATE auth_rate_limits SET expires_at=clock_timestamp()-interval '1 second'");
       assert.equal((await post(two,'login',input)).status,401);
       const rows=await apiPool.query('SELECT bucket_hash FROM auth_rate_limits');assert.ok(rows.rows.every(row=>row.bucket_hash.length===32));

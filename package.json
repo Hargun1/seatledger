@@ -42,6 +42,8 @@
     "evidence:load": "node --env-file-if-exists=.env scripts/measure-load.js",
     "evidence:failures": "node --env-file-if-exists=.env scripts/measure-failures.js",
     "verify:foundation": "node scripts/verify-foundation.js",
+    "verify:operations": "node scripts/verify-operations.js",
+    "test:security": "node --env-file-if-exists=.env --test --test-concurrency=1 tests/db/auth-api.test.js tests/db/identity-ownership.test.js tests/db/organizer-api.test.js tests/db/checkins.test.js tests/db/observability.test.js",
     "verify:hosted": "node scripts/verify-hosted-demo.js",
     "db:migrate": "node --env-file-if-exists=.env scripts/migrate.js",
     "db:seed": "node --env-file-if-exists=.env scripts/seed.js"

@@ -1,6 +1,8 @@
 import { z } from 'zod';
 import { claimOutbox, acknowledgeOutbox, failOutbox } from '../reliability/outbox.js';
 import { createSimulatedPayment, simulatedPaymentId, simulatorScenarios, SimulatedProviderError } from './simulator.js';
+import { retryDelaySeconds as backoff } from '../reliability/retry.js';
+import { runtimeTelemetry } from '../observability.js';
 
 async function transaction(pool, work) {
   const db = await pool.connect(); let discard = false;
@@ -49,6 +51,8 @@ export async function runPaymentBatch(pool, { signal, provider = createSimulated
   for (const job of jobs) {
     if (signal?.aborted) break; // Remaining claimed leases can be recovered after expiry.
     counts.attempted++;
+    const previousFailures = counts.failed;
+    await runtimeTelemetry.span('worker.payment.create', async () => {
     try {
       const attempt = (await pool.query('SELECT * FROM payment_attempts WHERE id=$1', [job.payment_attempt_id])).rows[0];
       if (!attempt || job.kind !== 'PAYMENT_CREATE' || attempt.provider !== 'simulated' || attempt.request_key !== job.operation_key)
@@ -63,12 +67,14 @@ export async function runPaymentBatch(pool, { signal, provider = createSimulated
       const permanent = error instanceof SimulatedProviderError;
       try {
         const changed = await transaction(pool, db => failOutbox(db, job.id, job.lease_token,
-          { code: permanent ? error.code : 'PAYMENT_WORK_RETRY', retryable: !permanent, delaySeconds: retryDelaySeconds }));
+          { code: permanent ? error.code : 'PAYMENT_WORK_RETRY', retryable: !permanent, delaySeconds: backoff(job.attempt_count, retryDelaySeconds) }));
         if (!changed) counts.stale++;
         else if (permanent || job.attempt_count >= job.max_attempts) counts.deadLettered++;
         else counts.retryScheduled++;
       } catch { counts.failed++; } // Lease recovery remains available; no raw errors/secrets logged.
     }
+    return { failed: counts.failed > previousFailures };
+    }, { traceId: job.id.replaceAll('-', '') });
   }
   return counts;
 }

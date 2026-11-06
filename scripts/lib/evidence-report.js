@@ -18,7 +18,7 @@ export function distribution(values) {
   return { count: sorted.length, p50Ms: p(0.5), p95Ms: p(0.95), p99Ms: p(0.99), minMs: sorted[0] ?? null, maxMs: sorted.at(-1) ?? null };
 }
 export async function writeEvidence(kind, report) {
-  if (!['queries', 'load', 'failures'].includes(kind)) throw new TypeError('Invalid report kind');
+  if (!['queries', 'load', 'failures', 'security', 'operations'].includes(kind)) throw new TypeError('Invalid report kind');
   const directory = new URL('../../test-results/evidence/', import.meta.url); await mkdir(directory, { recursive: true });
   const file = new URL(kind + '-' + new Date().toISOString().replaceAll(':', '-') + '.json', directory);
   await writeFile(file, JSON.stringify(report, null, 2) + '\n');

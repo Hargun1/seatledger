@@ -42,6 +42,9 @@ test('configuration rejects real payments without exposing connection credential
   assert.equal(readConfig({ ...settings,SIMULATOR_WEBHOOK_SECRET:'cd'.repeat(32) }).SIMULATOR_WEBHOOK_SECRET,'cd'.repeat(32));
   assert.throws(() => readConfig({ ...settings,SIMULATOR_WEBHOOK_SECRET:settings.AUTH_SECRET }), /^Error: Invalid configuration/);
   assert.throws(() => readConfig({ ...settings,SIMULATOR_WEBHOOK_SECRET:'cd'.repeat(32)+'\n' }), /^Error: Invalid configuration/);
+  assert.throws(() => readConfig({ ...settings,METRICS_TOKEN:settings.AUTH_SECRET }), /^Error: Invalid configuration/);
+  assert.equal(readConfig({ ...settings,METRICS_TOKEN:'ef'.repeat(32),TRACE_SAMPLE_RATE:'0.25' }).TRACE_SAMPLE_RATE,.25);
+  assert.throws(() => readConfig({ ...settings,TRACE_SAMPLE_RATE:2 }), /^Error: Invalid configuration/);
 });
 test('reservation validation rejects duplicated seats and client-supplied prices', () => {
   const id = '30000000-0000-4000-8000-000000000001';

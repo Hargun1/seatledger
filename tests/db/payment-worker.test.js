@@ -127,7 +127,7 @@ test('simulated provider/outbox recovery with real PostgreSQL and process termin
       await expireLease(f.job.id);
       const run = async () => {
         const result = await promisify(execFile)(process.execPath, [ 'apps/api/src/payments/outbox-worker.js', '--once'], { cwd, env, windowsHide: true, timeout: 10000 });
-        assert.equal(result.stderr, ''); const records = result.stdout.trim().split('\n').map(line => JSON.parse(line));
+        assert.equal(result.stderr, ''); const records = result.stdout.trim().split('\n').map(line => JSON.parse(line)).filter(row => row.service === 'seatledger-simulated-payments');
         assert.equal(records.at(-1).event, 'stopped'); return records.find(r => r.event === 'batch');
       };
       const recovered = await run(); assert.equal(recovered.providerReplayed, 1); assert.equal(recovered.completed, 1); assert.equal(recovered.failed, 0);

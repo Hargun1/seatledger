@@ -6,10 +6,11 @@ import { readDatabaseConfig } from '../../apps/api/src/config.js';
 import { createApp } from '../../apps/api/src/app.js';
 import { newToken, csrfFor, digest } from '../../apps/api/src/auth/security.js';
 import { paymentFixture } from '../../tests/helpers/payment-fixture.js';
+import { createTelemetry } from '../../apps/api/src/observability.js';
 
 // Verification only: all application connections use a new private schema.
 // Never migrate, seed, reset, stop or modify the user's public application data.
-export async function evidenceFixture(work, { apiCount = 1 } = {}) {
+export async function evidenceFixture(work, { apiCount = 1, logger = { info() {}, error() {} }, traceSampleRate = 0 } = {}) {
   assert.ok(Number.isInteger(apiCount) && apiCount >= 1 && apiCount <= 2);
   const database = readDatabaseConfig().DATABASE_URL;
   const adminPool = createPool(database), pools = [], servers = [], backendPids = new Set();
@@ -35,7 +36,7 @@ export async function evidenceFixture(work, { apiCount = 1 } = {}) {
       pool.on('remove', client => backendPids.delete(client.processID)); pools.push(pool);
     }
     for (let i = 0; i < apiCount; i++) {
-      const server = createApp({ pool: pools[i], config, logger: { info() {}, error() {} } }).listen(0, '127.0.0.1');
+      const server = createApp({ pool: pools[i], config, logger, telemetry: createTelemetry({ logger, sampleRate: traceSampleRate }) }).listen(0, '127.0.0.1');
       servers.push(server);
       await new Promise((resolve, reject) => { server.once('listening', resolve); server.once('error', reject); });
     }

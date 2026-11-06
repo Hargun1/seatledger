@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto';
 import { z } from 'zod';
+import { retryDelaySeconds as backoff } from '../reliability/retry.js';
 import { claimOutbox, acknowledgeOutbox, failOutbox } from '../reliability/outbox.js';
 import { createSimulatedRefund, simulatedRefundId, SimulatedRefundError } from './refund-simulator.js';
 
@@ -128,7 +129,7 @@ export async function runRefundBatch(pool, { signal, provider = createSimulatedR
     } catch (error) {
       if (error instanceof RefundLeaseExpired) { counts.stale++; continue; }
       counts.failed++;
-      try { const outcome = await recordFailure(pool, job, error, retryDelaySeconds); if (outcome) counts[outcome]++; else counts.stale++; }
+      try { const outcome = await recordFailure(pool, job, error, backoff(job.attempt_count, retryDelaySeconds)); if (outcome) counts[outcome]++; else counts.stale++; }
       catch (failure) { if (failure instanceof RefundLeaseExpired) counts.stale++; else counts.failed++; }
     }
   }

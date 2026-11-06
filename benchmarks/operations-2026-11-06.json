@@ -1,0 +1,89 @@
+{
+  "testedAt": "2026-11-06T14:18:10.238Z",
+  "passed": true,
+  "synthetic": true,
+  "environment": {
+    "node": "v24.15.0",
+    "platform": "win32",
+    "logicalCpus": 8,
+    "memoryBytes": 17008959488,
+    "postgres": "PostgreSQL 17.11 (Debian 17.11-1.pgdg13+2) on x86_64-pc-linux-gnu, compiled by gcc (Debian 14.2.0-19) 14.2.0, 64-bit"
+  },
+  "tests": {
+    "unit": 136,
+    "database": 231,
+    "browser": 81,
+    "securitySubset": 46
+  },
+  "load": {
+    "clientsPerWorkload": 1000,
+    "maxConcurrent": 250,
+    "apiInstances": 2,
+    "connectionsPerApi": 10,
+    "connectionAcquireTimeoutMs": 10000,
+    "runs": [
+      {
+        "kind": "one-seat",
+        "requests": 1000,
+        "successes": 1,
+        "conflicts": 999,
+        "unexpected": {},
+        "requestsPerSecond": 144.78425647268517,
+        "p50Ms": 1520.3385999999991,
+        "p95Ms": 2096.8488000000007,
+        "p99Ms": 2353.2336999999998,
+        "invariantsPassed": true,
+        "invalidAllocations": 0,
+        "invalidAgreements": 0
+      },
+      {
+        "kind": "one-show",
+        "requests": 1000,
+        "successes": 500,
+        "conflicts": 500,
+        "unexpected": {},
+        "requestsPerSecond": 170.99925191247277,
+        "p50Ms": 1332.467999999999,
+        "p95Ms": 1765.646499999999,
+        "p99Ms": 1859.9354999999996,
+        "invariantsPassed": true,
+        "invalidAllocations": 0,
+        "invalidAgreements": 0
+      },
+      {
+        "kind": "many-shows",
+        "requests": 1000,
+        "successes": 1000,
+        "conflicts": 0,
+        "unexpected": {},
+        "requestsPerSecond": 149.6393071694092,
+        "p50Ms": 1593.7321999999986,
+        "p95Ms": 1819.6124999999993,
+        "p99Ms": 1851.0463000000018,
+        "invariantsPassed": true,
+        "invalidAllocations": 0,
+        "invalidAgreements": 0
+      }
+    ]
+  },
+  "databaseOutage": {
+    "passed": true,
+    "unavailableReadiness": 503,
+    "liveHealth": 200,
+    "apiRestarted": false,
+    "pendingJobRecovered": true,
+    "competingWorkers": 2,
+    "bookings": 1,
+    "providerEffects": 1
+  },
+  "limitations": [
+    "local two-instance HTTP hold workload; not a production capacity guarantee",
+    "database outage uses pause/unpause; not disk loss or disaster recovery",
+    "browser acceptance and physical devices are separate checks"
+  ],
+  "commands": [
+    "npm run verify:operations",
+    "npm run test:security"
+  ],
+  "browserEvidence": "Separate complete browser run; all 81 passed."
+}

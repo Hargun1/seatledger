@@ -9,11 +9,35 @@ on:
         description: Run optional synthetic query, load and recovery measurements
         type: boolean
         default: false
+      operations:
+        description: Run disposable-database load, security, worker and outage verification
+        type: boolean
+        default: false
 
 permissions:
   contents: read
 
 jobs:
+  operations:
+    if: github.event_name == 'workflow_dispatch' && inputs.operations
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - run: npm run verify:operations
+      - name: Upload synthetic operations results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: seatledger-operations
+          path: test-results/operations/**/*.json
+          if-no-files-found: ignore
+          retention-days: 7
   acceptance:
     runs-on: ubuntu-latest
     timeout-minutes: 25

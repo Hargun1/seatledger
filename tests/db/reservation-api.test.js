@@ -204,7 +204,7 @@ test('reservation/payment commands, retries and contention (real PostgreSQL, two
           cwd: fileURLToPath(new URL('../../', import.meta.url)), windowsHide: true, timeout: 10000,
           env: { ...process.env, DATABASE_URL: url.toString(), EXPIRY_BATCH_SIZE: '1', EXPIRY_POLL_MS: '1000' }
         });
-        assert.equal(result.stderr, ''); const records = result.stdout.trim().split('\n').map(line => JSON.parse(line));
+        assert.equal(result.stderr, ''); const records = result.stdout.trim().split('\n').map(line => JSON.parse(line)).filter(row => row.service === 'seatledger-expiry');
         assert.equal(records[0].event, 'started'); assert.equal(records.at(-1).event, 'stopped');
         return records.find(r => r.event === 'batch');
       };

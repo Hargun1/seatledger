@@ -206,7 +206,7 @@ test('durable local simulator delivery, recovery and booking pipeline (real Post
       assert.equal(await c.receiptCount(x),1);assert.equal((await c.jobs(x))[0].status,'PROCESSING');assert.equal(child.kill('SIGKILL'),true);const exit=await exited;assert.ok(exit.signal||exit.code!==0);
     } finally {clearTimeout(timer);if(child.exitCode===null&&child.signalCode===null)child.kill('SIGKILL');await exited;}
     await c.expire((await c.jobs(x))[0]);
-    const run=async()=>{const result=await promisify(execFile)(process.execPath,['apps/api/src/payments/delivery-worker.js','--once'],{cwd,env,windowsHide:true,timeout:10000});assert.equal(result.stderr,'');const lines=result.stdout.trim().split('\n').map(s=>JSON.parse(s));assert.equal(lines.at(-1).event,'stopped');return lines.find(r=>r.event==='batch');};
+    const run=async()=>{const result=await promisify(execFile)(process.execPath,['apps/api/src/payments/delivery-worker.js','--once'],{cwd,env,windowsHide:true,timeout:10000});assert.equal(result.stderr,'');const lines=result.stdout.trim().split('\n').map(s=>JSON.parse(s)).filter(row=>row.service==='seatledger-simulated-delivery');assert.equal(lines.at(-1).event,'stopped');return lines.find(r=>r.event==='batch');};
     const recovered=await run();assert.equal(recovered.delivered,2);assert.equal(recovered.failed,0);assert.equal(await c.receiptCount(x),2);assert.equal((await c.jobs(x))[0].attempt_count,2);
     await runInboxBatch(c.pools[1]);assert.equal((await c.pay(x)).resolution,'BOOKED');assert.equal((await run()).claimed,0);
   }));

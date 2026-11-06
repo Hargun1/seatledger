@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import { retryDelaySeconds as backoff } from '../reliability/retry.js';
 import { materializeDeliveryBatch,claimDeliveries,acknowledgeDelivery,failDelivery } from './delivery-store.js';
 import { localCallbackUrl,postSimulatedEvent,DeliveryError } from './delivery-http.js';
 
@@ -24,7 +25,7 @@ export async function runDeliveryBatch(pool,{callbackUrl,secret,batchSize=5,leas
     }catch(error){
       counts.failed++;
       try{const status=await failDelivery(pool,job,{retryable:!(error instanceof DeliveryError)||error.retryable,
-        code:error instanceof DeliveryError?error.code:'DELIVERY_TRANSPORT',delaySeconds:retryDelaySeconds});
+        code:error instanceof DeliveryError?error.code:'DELIVERY_TRANSPORT',delaySeconds:backoff(job.attempt_count,retryDelaySeconds)});
         if(status==='RETRY_WAIT')counts.retryScheduled++;else if(status==='DEAD_LETTER')counts.deadLettered++;else counts.stale++;
       }catch{counts.failed++;}
     }
