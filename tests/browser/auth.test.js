@@ -57,6 +57,19 @@ test('customer account screens (built React + browser + API + PostgreSQL)', { ti
     browser = await chromium.launch(process.env.SEATLEDGER_BROWSER_CHANNEL ? { channel: process.env.SEATLEDGER_BROWSER_CHANNEL } : {});
     const page = await pageFor();
 
+    await scenario('a cold session endpoint explains startup and recovers automatically without submitting credentials', async () => {
+      let reads = 0, writes = 0;
+      const count = request => { if (request.method() === 'POST') writes++; };
+      page.on('request', count);
+      await page.route('**/api/auth/session', route => ++reads === 1
+        ? route.fulfill({ status: 503, contentType: 'text/html', body: 'Starting' }) : route.continue());
+      await page.goto(`${config.PUBLIC_ORIGIN}/sign-in`);
+      await expect(page.getByRole('status')).toContainText('starting up');
+      await expect(page.getByLabel('Email address', { exact: true })).toBeVisible({ timeout: 10000 });
+      assert.equal(reads, 2); assert.equal(writes, 0);
+      await page.unroute('**/api/auth/session'); page.off('request', count);
+    });
+
     await scenario('anonymous account redirect, shared field validation and keyboard-friendly labels', async () => {
       await page.goto(`${config.PUBLIC_ORIGIN}/account`);
       await expect(page).toHaveURL(/\/sign-in$/);

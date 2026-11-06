@@ -5,7 +5,7 @@ import { createPublicReader } from './reader.js';
 import { readSearch, searchFor, venueWhen, utcWhen, priceLabel, stateLabels, seatingSections } from './model.js';
 
 function useProgramme(action, { eventId, showId, search = '' } = {}) {
-  const reader = useMemo(() => createPublicReader(signal => discoveryRequest(action, { eventId, showId, search, signal })),
+  const reader = useMemo(() => createPublicReader((signal, onRetry) => discoveryRequest(action, { eventId, showId, search, signal, onRetry })),
     [action, eventId, showId, search]);
   const state = useSyncExternalStore(reader.subscribe, reader.getSnapshot, reader.getSnapshot);
   useEffect(() => { reader.refresh(); return reader.cancel; }, [reader]);
@@ -14,7 +14,7 @@ function useProgramme(action, { eventId, showId, search = '' } = {}) {
 function usePageTitle(title) { useEffect(() => { document.title = `SeatLedger - ${title}`; }, [title]); }
 
 function ReadFeedback({ resource, inventory = false, clear }) {
-  if (resource.status === 'loading') return <p className="programme-loading" role="status">{inventory ? 'Reading saved availability.' : 'Reading the programme.'}</p>;
+  if (resource.status === 'loading') return <p className="programme-loading" role="status">{resource.waking ? 'The box office is starting up. This can take about a minute. We’ll keep checking automatically.' : inventory ? 'Reading saved availability.' : 'Reading the programme.'}</p>;
   if (resource.status !== 'error') return null;
   const error = resource.error;
   return <div className="programme-error" role="alert"><h2>{error?.status === 404 ? 'This one is off the bill.' : 'A pause in the programme.'}</h2>

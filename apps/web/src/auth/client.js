@@ -1,3 +1,5 @@
+import { readApi } from '../network/read-api.js';
+
 const messages = {
   INVALID_CREDENTIALS: 'The email or password is incorrect. Please try again.',
   ACCOUNT_EXISTS: 'An account with this email already exists. Sign in instead.',
@@ -27,13 +29,13 @@ export function validSession(value) {
     && /^[A-Za-z0-9_-]{43}$/.test(value.csrfToken) && Number.isFinite(Date.parse(value.expiresAt));
 }
 
-export async function authRequest(action, { body, csrfToken, signal } = {}) {
+export async function authRequest(action, { body, csrfToken, signal, onRetry } = {}) {
   const method = action === 'session' ? 'GET' : 'POST';
   const headers = method === 'POST' ? { 'Content-Type': 'application/json', 'X-SeatLedger-Client': 'web' } : {};
   if (csrfToken) headers['X-CSRF-Token'] = csrfToken;
   let response;
   try {
-    response = await fetch(`/api/auth/${action}`, {
+    response = action === 'session' ? await readApi('/api/auth/session', { signal, onRetry }) : await fetch(`/api/auth/${action}`, {
       method, headers, credentials: 'same-origin', cache: 'no-store',
       signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(15000)]) : AbortSignal.timeout(15000),
       ...(method === 'POST' ? { body: JSON.stringify(body ?? {}) } : {})

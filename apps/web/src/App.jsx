@@ -103,7 +103,7 @@ function SessionBoundary({ guest = false, children }) {
   useEffect(() => { document.querySelector('main h1')?.focus(); }, [auth.status]);
   if (auth.status === 'loading' || auth.status === 'error') return <main id="main" className="message-page" aria-busy={auth.status === 'loading'}>
     <p className="eyebrow">YOUR SEATLEDGER ACCOUNT</p><h1 tabIndex="-1">{auth.status === 'loading' ? 'One moment.' : 'Let’s reconnect.'}</h1>
-    {auth.status === 'loading' ? <p role="status">Checking your session…</p> : <><p role="alert">{auth.error}</p><button className="primary-button" onClick={() => auth.refresh()}>Check session <span aria-hidden="true">↻</span></button></>}
+    {auth.status === 'loading' ? <p role="status">{auth.waking ? 'The box office is starting up. This can take about a minute. We’ll keep checking automatically.' : 'Checking your session…'}</p> : <><p role="alert">{auth.error}</p><button className="primary-button" onClick={() => auth.refresh()}>Check session <span aria-hidden="true">↻</span></button></>}
   </main>;
   if (guest && auth.status === 'authenticated') return <Navigate to={returnTo || '/account'} replace />;
   if (!guest && auth.status === 'anonymous') {

@@ -18,7 +18,7 @@ export function validPayment(value, { showId, reservationId, agreement } = {}) {
     : value.resolution === 'UNRESOLVED' && value.bookingId === null;
 }
 export function paymentOutcome(payment) {
-  if (payment.resolution === 'BOOKED') return { title: 'Your seats are booked.', detail: 'The server confirmed this booking. Open your saved booking receipt to issue or recover admission tickets.', tone: 'booked' };
+  if (payment.resolution === 'BOOKED') return { title: 'Payment funded a booking.', detail: 'This payment originally funded a booking. Open its receipt for the current booking, ticket and refund status.', tone: 'booked' };
   if (payment.resolution === 'REFUND_REQUIRED') return { title: 'Refund requested.', detail: 'The simulated payment succeeded, but it could not fund a booking. Check the separate current refund record below for progress.', tone: 'review' };
   if (payment.status === 'FAILED') return { title: 'The simulated payment failed.', detail: 'This attempt will not be charged again here. A delayed success can still change its outcome; check its current status.', tone: 'review' };
   return { title: 'Your payment is processing.', detail: 'Keep this page or its address. Check status to recover the outcome. Starting payment does not extend your hold.', tone: 'pending' };

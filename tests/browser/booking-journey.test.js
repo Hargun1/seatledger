@@ -7,6 +7,7 @@ import { evidenceFixture } from '../../scripts/lib/evidence-fixture.js';
 import { runPaymentBatch } from '../../apps/api/src/payments/worker.js';
 import { runDeliveryBatch } from '../../apps/api/src/payments/delivery.js';
 import { runInboxBatch } from '../../apps/api/src/payments/processor.js';
+import { runRefundBatch } from '../../apps/api/src/payments/refund-jobs.js';
 
 // Real built UI -> authenticated HTTP -> PostgreSQL -> signed simulator HTTP.
 // SQL creates catalogue/sessions only; no SQL-funded successful booking fixture.
@@ -59,6 +60,16 @@ test('complete customer booking and recovery in the built browser', { timeout: 1
       browser = await chromium.launch({ ...(process.env.SEATLEDGER_BROWSER_CHANNEL ? { channel: process.env.SEATLEDGER_BROWSER_CHANNEL } : {}),
         args: ['--disable-background-networking', '--disable-component-update', '--disable-sync', '--no-first-run', '--metrics-recording-only'] });
 
+      await scenario('programme startup errors show progress and recover without a manual refresh', async () => {
+        const f = await c.catalogue(), who = await customer(); let reads = 0;
+        await who.page.route('**/api/events?*', route => ++reads === 1
+          ? route.fulfill({ status: 502, contentType: 'text/html', body: 'Bad Gateway' }) : route.continue());
+        await who.page.goto(c.config.PUBLIC_ORIGIN + '/events');
+        await expect(who.page.getByText(/The box office is starting up/)).toBeVisible();
+        await expect(who.page.getByRole('link', { name: new RegExp(f.title) })).toBeVisible({ timeout: 10000 });
+        assert.equal(reads, 2); await who.page.unroute('**/api/events?*');
+      });
+
       await scenario('discover, reserve, reload processing, signed duplicate callbacks, receipt, ticket and private print', async () => {
         const f = await c.catalogue(), who = await customer(), page = who.page;
         await page.goto(c.config.PUBLIC_ORIGIN + '/events');
@@ -86,6 +97,28 @@ test('complete customer booking and recovery in the built browser', { timeout: 1
           (SELECT count(*)::int FROM admission_tickets a JOIN bookings b ON b.id=a.booking_id WHERE b.show_id=$1) AS tickets,
           (SELECT count(*)::int FROM show_seats WHERE show_id=$1 AND state='BOOKED') AS booked`, [f.show])).rows[0];
         assert.deepEqual(counts, { bookings: 1, tickets: 1, booked: 1 });
+      });
+
+      await scenario('cancelled and refunded bookings never appear currently booked in payment history or checkout', async () => {
+        const f = await c.catalogue(), who = await customer(), page = who.page;
+        await reserve(who, f); await checkout(who);
+        await page.getByRole('button', { name: 'Start simulated payment', exact: true }).click();
+        await expect(page.getByRole('heading', { name: 'Your payment is processing.', exact: true })).toBeVisible();
+        await settle(); await page.reload();
+        await page.getByRole('link', { name: 'View saved booking receipt', exact: true }).click();
+        await page.getByRole('button', { name: 'Cancel this whole booking', exact: true }).click();
+        await page.getByRole('button', { name: 'Yes, cancel booking', exact: true }).click();
+        await expect(page.getByText('This booking is cancelled. This page does not confirm refund completion.', { exact: true })).toBeVisible();
+        assert.equal((await runRefundBatch(c.pool, { workerId: 'browser-cancel-refund', batchSize: 5 })).failed, 0);
+        await page.reload(); await expect(page.getByText('Simulated refund completed.', { exact: true })).toBeVisible();
+        await page.goto(c.config.PUBLIC_ORIGIN + '/account/payments');
+        await expect(page.getByText('Payment funded a booking.', { exact: true })).toBeVisible();
+        await expect(page.getByText('Your seats are booked.', { exact: true })).toHaveCount(0);
+        await page.getByRole('link', { name: 'Reopen checkout', exact: true }).click();
+        await expect(page.getByRole('heading', { name: 'Payment funded a booking.', exact: true })).toBeVisible();
+        await expect(page.getByText(/Open its receipt for the current booking, ticket and refund status/)).toBeVisible();
+        await page.getByRole('link', { name: 'View saved booking receipt', exact: true }).click();
+        await expect(page.getByText('Simulated refund completed.', { exact: true })).toBeVisible();
       });
 
       await scenario('two stale seat selections produce one hold; loser refreshes and recovers after release', async () => {
@@ -162,7 +195,7 @@ test('complete customer booking and recovery in the built browser', { timeout: 1
         // intercepted response is still in flight. Finish it before unroute.
         await retryResponse;
         await who.page.unroute(pattern); await settle(); await who.page.reload();
-        await expect(who.page.getByRole('heading', { name: 'Your seats are booked.', exact: true })).toBeVisible();
+        await expect(who.page.getByRole('heading', { name: 'Payment funded a booking.', exact: true })).toBeVisible();
         const other = await customer(), booking = (await paymentRows(f))[0].booking_id;
         await other.page.goto(c.config.PUBLIC_ORIGIN + '/account/bookings/' + booking);
         await expect(other.page.getByRole('alert')).toBeVisible(); await expect(other.page.locator('.ticket-qr')).toHaveCount(0);

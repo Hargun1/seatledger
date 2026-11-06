@@ -70,6 +70,23 @@ test('session-check outages are distinct from a confirmed anonymous response', a
   assert.equal(store.getSnapshot().session, null);
 });
 
+test('startup recovery hides private data, then restores the session; abandoned retry feedback stays fenced', async () => {
+  let recovering, calls = 0;
+  const pending = deferred();
+  const store = createSessionStore(async (action, options) => {
+    if (action !== 'session') return null;
+    if (++calls === 1) return sample;
+    recovering = options.onRetry; recovering(); return pending.promise;
+  });
+  await store.refresh(); const read = store.refresh({ background: true });
+  assert.equal(store.getSnapshot().status, 'loading'); assert.equal(store.getSnapshot().waking, true);
+  assert.equal(store.getSnapshot().session, null);
+  pending.resolve(sample); await read;
+  assert.equal(store.getSnapshot().status, 'authenticated'); assert.equal(store.getSnapshot().waking, false);
+  await store.mutate('logout'); recovering();
+  assert.equal(store.getSnapshot().status, 'anonymous'); assert.equal(store.getSnapshot().waking, false);
+});
+
 test('the auth client uses same-origin cookies and CSRF, validates success, and never reflects server error text', async t => {
   let captured;
   t.mock.method(globalThis, 'fetch', async (url, options) => {

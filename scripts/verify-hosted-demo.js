@@ -19,6 +19,7 @@ page.on('pageerror', () => pageErrors.push('browser-script-error'));
 page.setDefaultTimeout(30000);
 try {
   await page.goto(origin + '/sign-up');
+  await page.getByLabel('Your name', { exact: true }).waitFor({ timeout: 90000 });
   await page.getByLabel('Your name', { exact: true }).fill('SeatLedger release verification');
   await page.getByLabel('Email address', { exact: true }).fill('release-' + randomUUID() + '@example.invalid');
   await page.getByLabel('Password', { exact: true }).fill(randomBytes(32).toString('base64url'));

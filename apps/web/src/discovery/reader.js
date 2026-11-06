@@ -1,4 +1,4 @@
-// A public GET reader: no sessions, writes, retries or cached stale success.
+// A public GET reader: no sessions, writes or cached stale success.
 // The hook creates a new reader for each route/filter key, so a new scope has
 // a fresh loading snapshot even before React runs effect cleanup.
 export function createPublicReader(load) {
@@ -13,7 +13,9 @@ export function createPublicReader(load) {
       const signal = controller.signal;
       publish({ status: 'loading', data: null, error: null });
       try {
-        const data = await load(signal);
+        const data = await load(signal, () => {
+          if (own === generation && !signal.aborted) publish({ status: 'loading', data: null, error: null, waking: true });
+        });
         if (own === generation && !signal.aborted) publish({ status: 'ready', data, error: null });
       } catch (error) {
         if (own === generation && !signal.aborted) publish({ status: 'error', data: null, error });

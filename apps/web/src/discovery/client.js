@@ -1,4 +1,5 @@
 import { validId, instant, readSearch } from './model.js';
+import { readApi } from '../network/read-api.js';
 
 const messages = {
   NOT_FOUND: 'This programme or show is no longer available. It may have ended or been withdrawn.',
@@ -39,7 +40,7 @@ function cells(seats) {
 }
 const stateLabels = { AVAILABLE: true, HELD: true, BOOKED: true };
 
-export async function discoveryRequest(action, { eventId, showId, search = '', signal } = {}) {
+export async function discoveryRequest(action, { eventId, showId, search = '', signal, onRetry } = {}) {
   if (!['events', 'event', 'seats'].includes(action)) throw new DiscoveryError('INVALID_REQUEST', 400);
   if (action !== 'events' && (!validId(eventId) || (action === 'seats' && !validId(showId)))) throw new DiscoveryError('NOT_FOUND', 404);
   eventId = eventId?.toLowerCase(); showId = showId?.toLowerCase();
@@ -48,8 +49,7 @@ export async function discoveryRequest(action, { eventId, showId, search = '', s
   const params = new URLSearchParams(search); if (action !== 'seats') params.set('limit', '20');
   const path = `/api/events${action === 'events' ? '' : `/${eventId}`}${action === 'seats' ? `/shows/${showId}/seats` : ''}` + (params.size ? '?' + params : '');
   let response;
-  try { response = await fetch(path, { method: 'GET', credentials: 'omit', cache: 'no-store',
-    signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(10000)]) : AbortSignal.timeout(10000) }); }
+  try { response = await readApi(path, { credentials: 'omit', signal, onRetry }); }
   catch (error) { if (signal?.aborted) throw error; throw new DiscoveryError('CONNECTION_ERROR'); }
   let data; try { data = await response.json(); } catch { throw new DiscoveryError('INVALID_RESPONSE'); }
   if (!response.ok) throw new DiscoveryError(data?.error, response.status);
